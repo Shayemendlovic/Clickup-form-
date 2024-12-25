@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickUp Voice Note Form</title>
+    <script src="https://www.webrtc-experiment.com/RecordRTC.js"></script>
+</head>
+<body>
+    <h1>Record a Voice Note</h1>
+    
+    <button id="startRecording">Start Recording</button>
+    <button id="stopRecording" disabled>Stop Recording</button>
+    
+    <audio id="audioPlayback" controls></audio>
+    
+    <form id="voiceForm">
+        <input type="hidden" name="voiceFile" id="voiceFile">
+        <input type="submit" value="Submit Form">
+    </form>
+
+    <script>
+        let recorder;
+        let audioBlob;
+
+        const startButton = document.getElementById('startRecording');
+        const stopButton = document.getElementById('stopRecording');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const form = document.getElementById('voiceForm');
+        const voiceFileInput = document.getElementById('voiceFile');
+
+        startButton.onclick = () => {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                recorder = RecordRTC(stream, { type: 'audio' });
+                recorder.startRecording();
+
+                startButton.disabled = true;
+                stopButton.disabled = false;
+            });
+        };
+
+        stopButton.onclick = () => {
+            recorder.stopRecording(() => {
+                audioBlob = recorder.getBlob();
+                audioPlayback.src = URL.createObjectURL(audioBlob);
+                voiceFileInput.value = URL.createObjectURL(audioBlob); // You can adjust this to save the file to your server
+            });
+
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        };
+
+        form.onsubmit = function (e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+
+            // Send form data, including the voice file, to the backend
+            fetch('/upload-voice-note', {
+                method: 'POST',
+                body: formData,
+            }).then(response => response.json())
+              .then(data => console.log(data))
+              .catch(error => console.error('Error:', error));
+        };
+    </script>
+</body>
+</html>
